@@ -1,44 +1,47 @@
-use std::io::{stdout, Result};
+use clap::{Parser, Subcommand};
+use inquire::Text;
 
-mod state;
+pub mod utils;
 
-use ratatui::{
-    backend::CrosstermBackend,
-    crossterm::{
-        event::{self, KeyCode, KeyEventKind},
-        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-        ExecutableCommand,
+mod commands;
+
+#[derive(Parser)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+    #[arg(short, long, help = "Path to the output directory, not including the collection name")]
+    output_path: Option<String>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    Create {
+        #[arg(short, long)]
+        input_path: Option<String>,
+        #[arg(short, long)]
+        collection_name: Option<String>,
     },
-    style::Stylize,
-    widgets::Paragraph,
-    Terminal,
-};
-
-fn main() -> Result<()> {
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
-    let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
-    terminal.clear()?;
-
-    loop {
-        terminal.draw(|frame| {
-            let area = frame.area();
-            frame.render_widget(
-                Paragraph::new("Hello Ratatui! (press 'q' to quit)")
-                    .white(),
-                area,
-            );
-        })?;
-        if event::poll(std::time::Duration::from_millis(16))? {
-            if let event::Event::Key(key) = event::read()? {
-                if key.kind == KeyEventKind::Press && key.code == KeyCode::Char('q') {
-                    break;
-                }
-            }
-        }
+    Sync {
+        #[arg(short, long)]
+        collection_name: Option<String>,
     }
+}
 
-    stdout().execute(LeaveAlternateScreen)?;
-    disable_raw_mode()?;
-    Ok(())
+fn main() {
+    let cli = Cli::parse();
+    // If no output path is given, bring up a prompt
+    let output_path = cli.output_path.unwrap_or_else(|| {
+        let input = Text::new("Where is your save location?").with_autocomplete(utils::file_path_autocomplete::FilePathCompleter::default()).prompt();
+        match input {
+            Ok(path) => path,
+            Err(e) => {
+                println!("Error: {}", e);
+                return String::new();
+            }
+        } 
+    });
+    match cli.command {
+        Commands::Create { input_path, collection_name } => commands::create::run(input_path, collection_name, output_path),
+        Commands::Sync { collection_name } => commands::sync::run(collection_name, output_path),
+    }
 }
