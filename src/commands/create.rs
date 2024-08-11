@@ -17,7 +17,7 @@ pub fn run(input_path: Option<String>, collection_name: Option<String>, output_p
         match input {
             Ok(name) => name,
             Err(e) => {
-                eprintln!("Error: {}", e);
+                println!("Error: {}", e);
                 return String::new();
             }
         }

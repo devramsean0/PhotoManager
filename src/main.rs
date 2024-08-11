@@ -20,10 +20,6 @@ enum Commands {
         input_path: Option<String>,
         #[arg(short, long)]
         collection_name: Option<String>,
-    },
-    Sync {
-        #[arg(short, long)]
-        collection_name: Option<String>,
     }
 }
 
@@ -42,6 +38,5 @@ fn main() {
     });
     match cli.command {
         Commands::Create { input_path, collection_name } => commands::create::run(input_path, collection_name, output_path),
-        Commands::Sync { collection_name } => commands::sync::run(collection_name, output_path),
     }
 }
